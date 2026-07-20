@@ -35,6 +35,10 @@ jobs:
       - name: Build debug APK
         run: ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee build.log
 
+      - name: List APK output
+        if: success() && github.ref == 'refs/heads/main'
+        run: find app/build/outputs -name "*.apk" -exec ls -la {} \;
+
       - name: Upload APK to Release
         if: success() && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
@@ -42,7 +46,7 @@ jobs:
           tag_name: latest
           name: Latest Build
           prerelease: true
-          files: app/build/outputs/apk/debug/*.apk
+          files: app/build/outputs/apk/debug/app-debug.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
