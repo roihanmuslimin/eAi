@@ -35,24 +35,37 @@ jobs:
       - name: Build debug APK
         run: ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee build.log
 
-      - name: List APK output
+      - name: Locate APK and write to summary
         if: success() && github.ref == 'refs/heads/main'
         run: |
-          echo "=== build outputs tree ==="
-          find app/build -type f | head -50
-          echo "=== apks ==="
-          find app/build -name "*.apk" -print
+          APK=$(find app/build -name "*.apk" | head -1)
+          echo "APK_PATH=$APK"
+          echo "APK path: $APK" >> "$GITHUB_STEP_SUMMARY"
+          echo "$APK" > apk_path.txt
+          ls -la "$APK"
 
       - name: Upload APK to Release
         if: success() && github.ref == 'refs/heads/main'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: latest
-          name: Latest Build
-          prerelease: true
-          files: app/build/outputs/apk/debug/app-debug.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          APK=$(cat apk_path.txt)
+          NAME=$(basename "$APK")
+          # ensure release exists
+          curl -s -X POST -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -d '{"tag_name":"latest","name":"Latest Build","prerelease":true}' \
+            "https://api.github.com/repos/${{ github.repository }}/releases" >/dev/null || true
+          REL_ID=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/latest" \
+            | python3 -c "import sys,json;print(json.load(sys.stdin)['id'])")
+          echo "Release id: $REL_ID"
+          curl -s -X POST \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "Content-Type: application/vnd.android.package-archive" \
+            --data-binary @"$APK" \
+            "https://uploads.github.com/repos/${{ github.repository }}/releases/$REL_ID/assets?name=$NAME"
 
       - name: Upload build log on failure
         if: failure()
