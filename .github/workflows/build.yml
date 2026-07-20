@@ -37,7 +37,11 @@ jobs:
 
       - name: List APK output
         if: success() && github.ref == 'refs/heads/main'
-        run: find app/build/outputs -name "*.apk" -exec ls -la {} \;
+        run: |
+          echo "=== build outputs tree ==="
+          find app/build -type f | head -50
+          echo "=== apks ==="
+          find app/build -name "*.apk" -print
 
       - name: Upload APK to Release
         if: success() && github.ref == 'refs/heads/main'
