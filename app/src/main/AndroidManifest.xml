@@ -12,7 +12,7 @@
         android:label="eAi Browser"
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Material3.DayNight.NoActionBar"
+        android:theme="@style/Theme.EAi"
         android:usesCleartextTraffic="true">
 
         <activity
